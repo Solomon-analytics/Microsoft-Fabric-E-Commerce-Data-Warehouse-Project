@@ -1,0 +1,187 @@
+/*=========================================================================================
+  1. creating tables in the bronze schema
+  2. ingesting data into tables in the bronze schema
+=========================================================================================*/
+
+CREATE OR ALTER PROCEDURE [bronze].[load_bronze] AS 
+BEGIN
+DECLARE @start_time DATETIME2, @end_time DATETIME2, @batch_start_time DATETIME2, @batch_end_time DATETIME2
+BEGIN TRY
+SET @batch_start_time = CURRENT_TIMESTAMP;
+PRINT '==================================================================';
+PRINT 'Loading the Bronze Layer';
+PRINT '==================================================================';
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Loading crm tables';
+PRINT '------------------------------------------------------------------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.cust_info_crm';
+IF OBJECT_ID ('bronze.cust_info_crm', 'U') IS NOT NULL
+DROP TABLE [bronze].[cust_info_crm];
+CREATE TABLE [customersaleswarehouse].[bronze].[cust_info_crm]
+(
+  cst_id VARCHAR(50),
+  cst_key Varchar(50),
+  cst_firstname varchar(50),
+  cst_lastname varchar(50),
+  cst_marital_status varchar(50),
+  cst_gender varchar(50),
+  cst_create_date date);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[cust_info_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[cust_info_crm];
+PRINT '>> ingesting data into: bronze.cust_info_crm';
+INSERT INTO [customersaleswarehouse].[bronze].[cust_info_crm]
+  SELECT *
+  FROM [customersaleswarehouse].[stg_crm].[cust_info_crm];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.prd_info_crm';
+IF OBJECT_ID ('bronze.prd_info_crm', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[bronze].[prd_info_crm];
+CREATE TABLE [customersaleswarehouse].[bronze].[prd_info_crm]
+  (
+  prd_id varchar(50),
+  prd_key varchar(50),
+  prd_nm varchar(50),
+  prd_cost INT,
+  prd_line varchar(50),
+  prd_start_dt date,
+  prd_end_dt date);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[prd_info_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[prd_info_crm];
+PRINT '>> ingesting data into: bronze.prd_info_crm';
+
+INSERT INTO [customersaleswarehouse].[bronze].[prd_info_crm]
+SELECT *
+FROM [customersaleswarehouse].[stg_crm].[prd_info_crm];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.sales_details_crm';
+IF OBJECT_ID ('bronze.sales_details_crm', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[bronze].[sales_details_crm];
+CREATE TABLE [customersaleswarehouse].[bronze].[sales_details_crm]
+(
+  sls_ord_num varchar(50),
+  sls_prd_key varchar(50),
+  sls_cust_id varchar(50),
+  sls_order_dt varchar(50),
+  sls_ship_dt varchar(50),
+  sls_due_dt varchar(50),
+  sls_sales int,
+  sls_quantity int,
+  sls_price int
+  );
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[sales_details_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[sales_details_crm];
+PRINT '>> ingesting data into: bronze.sales_details_crm';
+
+INSERT INTO [customersaleswarehouse].[bronze].[sales_details_crm]
+SELECT *
+FROM [customersaleswarehouse].[stg_crm].[sales_details_crm];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Loading erp tables';
+PRINT '------------------------------------------------------------------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.cust_az12_erp';
+IF OBJECT_ID ('bronze.cust_az12_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[bronze].[cust_az12_erp];
+CREATE TABLE [customersaleswarehouse].[bronze].[cust_az12_erp]
+(
+  CID varchar(50),
+  BDATE date,
+  GEN varchar(50)
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[cust_az12_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[cust_az12_erp];
+PRINT '>> ingesting data into: bronze.cust_az12_erp';
+
+INSERT INTO [customersaleswarehouse].[bronze].[cust_az12_erp]
+SELECT *
+FROM [customersaleswarehouse].[stg_erp].[CUST_AZ12_erp];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.loc_a101_erp';
+IF OBJECT_ID ('bronze.loc_a101_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[bronze].[loc_a101_erp];
+CREATE TABLE [customersaleswarehouse].[bronze].[loc_a101_erp]
+(
+   CID varchar(50),
+   cntry varchar(50)
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[loc_a101_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[loc_a101_erp];
+PRINT '>> ingesting data into: bronze.loc_a101_erp';
+
+INSERT INTO [customersaleswarehouse].[bronze].[loc_a101_erp]
+SELECT *
+FROM [customersaleswarehouse].[stg_erp].[LOC_A101_erp];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: bronze.px_cat_g1v2_erp';
+IF OBJECT_ID ('bronze.px_cat_g1v2_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[bronze].[px_cat_g1v2_erp];
+CREATE TABLE [customersaleswarehouse].[bronze].[px_cat_g1v2_erp]
+(
+  id varchar(50),
+  cat varchar(50),
+  subcat varchar(50),
+  maintenance varchar(50)
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[bronze].[px_cat_g1v2_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[bronze].[px_cat_g1v2_erp];
+PRINT '>> ingesting data into: bronze.px_cat_g1v2_erp';
+
+INSERT INTO [customersaleswarehouse].[bronze].[px_cat_g1v2_erp]
+SELECT *
+FROM [customersaleswarehouse].[stg_erp].[PX_CAT_G1V2_erp];
+
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @batch_end_time = CURRENT_TIMESTAMP;
+PRINT '==================================================================================================================';
+PRINT 'loading bronze layer completed';
+PRINT '  - total load duration:  ' + cast(datediff(second, @batch_start_time, @batch_end_time) as varchar) + ' seconds';
+PRINT '===================================================================================================================';
+
+END TRY
+BEGIN CATCH
+PRINT '==========================================================================';
+PRINT 'error occured during loading bronze layer'
+PRINT 'error message' + error_message();
+PRINT 'error message' + CAST(error_number() as varchar);
+PRINT 'error message' + CAST(error_state() as varchar);
+PRINT '==========================================================================';
+END CATCH
+END
