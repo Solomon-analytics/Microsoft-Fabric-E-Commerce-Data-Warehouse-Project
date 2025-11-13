@@ -1,0 +1,322 @@
+CREATE OR ALTER PROCEDURE [silver].[load_silver] AS 
+BEGIN
+DECLARE @start_time DATETIME2, @end_time DATETIME2, @batch_start_time DATETIME2, @batch_end_time DATETIME2
+BEGIN TRY
+SET @batch_start_time = CURRENT_TIMESTAMP;
+
+PRINT '==================================================================';
+PRINT 'Loading the Silver Layer';
+PRINT '==================================================================';
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Creating and Loading crm tables';
+PRINT '------------------------------------------------------------------';
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: silver.cust_info_crm';
+IF OBJECT_ID ('silver.cust_info_crm', 'U') IS NOT NULL
+DROP TABLE [silver].[cust_info_crm];
+CREATE TABLE [customersaleswarehouse].[silver].[cust_info_crm]
+(
+  customer_id VARCHAR(50),
+  customer_key VARCHAR(50),
+  customer_firstname VARCHAR(50),
+  customer_lastname VARCHAR(50),
+  customer_marital_status VARCHAR(50),
+  customer_gender VARCHAR(50),
+  customer_create_date DATE,
+  processed_date DATE
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[cust_info_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[cust_info_crm];
+PRINT '>> ingesting data into: silver.cust_info_crm';
+INSERT INTO [customersaleswarehouse].[silver].[cust_info_crm]
+SELECT
+cst_id AS customer_id,
+cst_key AS customer_key,
+TRIM(cst_firstname) AS customer_firstname,
+TRIM(cst_lastname) AS customer_lastname,
+CASE
+    WHEN UPPER(cst_marital_status) = 'S' THEN 'Single'
+    WHEN UPPER(cst_marital_status) = 'M' THEN 'Married'
+    WHEN UPPER(cst_marital_status) IS NULL OR UPPER(cst_marital_status) = '' THEN 'n/a'
+    ELSE cst_marital_status
+    END AS customer_marital_status,
+CASE
+    WHEN UPPER(cst_gender) = 'F' THEN 'Female'
+    WHEN UPPER(cst_gender) = 'M' THEN 'Male'
+    WHEN UPPER(cst_gender) IS NULL OR UPPER(cst_gender) = '' THEN 'n/a'
+    ELSE cst_gender
+    END AS customer_gender,
+cst_create_date AS customer_create_date,
+GETDATE() as processed_date
+FROM (
+        SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC) AS occurrence
+        FROM [customersaleswarehouse].[bronze].[cust_info_crm]
+        ) rd
+        WHERE rd.occurrence = 1
+          AND cst_id IS NOT NULL;
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: silver.sales_details_crm';
+IF OBJECT_ID ('silver.sales_details_crm', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[silver].[sales_details_crm];
+CREATE TABLE [customersaleswarehouse].[silver].[sales_details_crm]
+(
+  sales_order_number varchar(50),
+  sales_product_key varchar(50),
+  sales_customer_id varchar(50),
+  sales_order_date_id varchar(50),
+  sales_order_date date,
+  sales_ship_date_id varchar(50),
+  sales_ship_date date,
+  sales_due_date_id varchar(50),
+  sales_due_date date,
+  sales_amount int,
+  sales_quantity int,
+  sales_price int,
+  source_date_dq_check varchar(12),
+  source_ship_dq_check varchar(12),
+  source_due_dq_check varchar(12),
+  processed_date date
+  );
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[sales_details_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[sales_details_crm];
+PRINT '>> Ingesting Data into: silver.sales_details_crm';
+INSERT INTO [customersaleswarehouse].[silver].[sales_details_crm]
+SELECT 
+sls_ord_num as sales_order_number,
+sls_prd_key as sales_product_key,
+sls_cust_id as sales_customer_id,
+sls_order_dt as sales_order_date_id,
+CASE
+    WHEN CAST(sls_order_dt as int) <= 0 OR LEN(sls_order_dt) <> 8 THEN NULL
+    ELSE CAST(CAST(sls_order_dt as varchar) as date)
+    END AS sales_order_date,
+sls_ship_dt as sales_ship_date_id,
+CASE
+    WHEN CAST(sls_ship_dt as int) <= 0 OR LEN(sls_ship_dt) <> 8 THEN NULL
+    ELSE CAST(CAST(sls_ship_dt as varchar) as date)
+    END AS sales_ship_date,
+sls_due_dt as sales_due_date_id,
+CASE
+    WHEN CAST(sls_due_dt as int) <= 0 OR LEN(sls_due_dt) <> 8 THEN NULL
+    ELSE CAST(CAST(sls_due_dt as varchar) as date)
+    END AS sales_due_date,
+CASE
+    WHEN sls_sales <=0 OR sls_sales < sls_price  OR sls_sales is NULL THEN sls_price
+    ELSE sls_sales END AS sales_amount,
+COALESCE(sls_quantity, 0) as sales_quantity,
+CASE
+    WHEN sls_price <= 0 OR sls_price < sls_sales  OR sls_price is NULL THEN sls_sales
+    ELSE sls_price END AS sales_price,
+CASE 
+    WHEN CAST(sls_order_dt as int) <= 0 OR LEN(sls_order_dt) <> 8 THEN 'Invalid'
+    ELSE 'Valid'
+    END AS source_date_dq_check,
+CASE 
+    WHEN CAST(sls_ship_dt as int) <= 0 OR LEN(sls_ship_dt) <> 8 THEN 'Invalid'
+    ELSE 'Valid'
+    END AS source_ship_dq_check,
+CASE 
+    WHEN CAST(sls_due_dt as int) <= 0 OR LEN(sls_due_dt) <> 8 THEN 'Invalid'
+    ELSE 'Valid'
+    END AS source_due_dq_check,
+GETDATE() as processed_date
+FROM [customersaleswarehouse].[bronze].[sales_details_crm];
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> creating table: silver.prd_info_crm';
+IF OBJECT_ID ('silver.prd_info_crm', 'U') IS NOT NULL
+  DROP TABLE [customersaleswarehouse].[silver].[prd_info_crm];
+  CREATE TABLE [customersaleswarehouse].[silver].[prd_info_crm]
+  (
+  product_id varchar(50),
+  source_product_key varchar(50),
+  product_key varchar(50),
+  product_name varchar(100),
+  product_cost INT,
+  product_line varchar(50),
+  product_start_date date,
+  product_end_date date,
+  product_date_data_quality_check varchar(25),
+  processed_date date);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[prd_info_crm]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[prd_info_crm];
+PRINT '>> Ingesting Data into: silver.prd_info_crm';
+INSERT INTO [customersaleswarehouse].[silver].[prd_info_crm]
+SELECT 
+prd_id as product_id,
+SUBSTRING(prd_key, CHARINDEX('-', prd_key, CHARINDEX('-', prd_key) + 1) + 1, LEN(prd_key)) as source_product_key,
+REPLACE(LEFT(prd_key, CHARINDEX('-', prd_key, CHARINDEX('-', prd_key) + 1) -1), '-', '_') as product_key,
+prd_nm as product_name,
+COALESCE(prd_cost, 0) as product_cost,
+CASE 
+    WHEN TRIM(prd_line) = 'M' THEN 'Mountain'
+    WHEN TRIM(prd_line) = 'S' THEN 'Sport'
+    WHEN TRIM(prd_line) = 'R' THEN 'Road'
+    WHEN TRIM(prd_line) = 'T' THEN 'Touring'
+    ELSE 'n/a'
+    END AS product_line,
+product_start_date,
+product_end_date,
+CASE 
+    WHEN product_start_date > product_end_date THEN 'Invalid'
+    ELSE 'Valid'
+    END AS product_date_data_quality_check,
+GETDATE() as processed_date
+FROM (
+SELECT *,
+CASE
+    WHEN prd_start_dt > prd_end_dt THEN prd_end_dt
+    ELSE prd_start_dt
+    END AS product_start_date,
+CASE
+    WHEN prd_end_dt < prd_start_dt THEN prd_start_dt
+    ELSE prd_end_dt
+    END AS product_end_date,
+ROW_NUMBER() OVER (PARTiTION BY prd_key ORDER BY prd_start_dt  DESC) AS occurence
+FROM [customersaleswarehouse].[bronze].[prd_info_crm]
+) rd
+WHERE rd.occurence = 1;
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '------------------------------------------------------------------';
+PRINT 'Creating and Loading erp tables';
+PRINT '------------------------------------------------------------------';
+
+PRINT '>> Renaming tables: cust_az12_erp: cust_additional_attributes_erp'
+PRINT '>> creating table: silver.cust_additional_attributes_erp';
+IF OBJECT_ID ('silver.cust_additional_attributes_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[silver].[cust_additional_attributes_erp];
+CREATE TABLE [customersaleswarehouse].[silver].[cust_additional_attributes_erp]
+(
+  CID varchar(50),
+  customer_key varchar(50),
+  date_of_birth date,
+  customer_gender varchar(50),
+  processed_date date
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[cust_additional_attributes_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[cust_additional_attributes_erp];
+PRINT '>> Ingesting Data into: cust_additional_attributes_erp';
+INSERT INTO [customersaleswarehouse].[silver].[cust_additional_attributes_erp]
+SELECT
+CID,
+CASE
+    WHEN CID LIKE '%NAS%' THEN REPLACE(CID, 'NAS', '')
+    ELSE CID
+    END AS customer_key,
+BDATE as date_of_birth,
+CASE
+    WHEN GEN = 'F' THEN 'Female'
+    WHEN GEN = 'M' THEN 'Male'
+    WHEN GEN IS NULL OR GEN = '' THEN 'n/a'
+    ELSE GEN
+    END AS customer_gender,
+GETDATE() as processed_date
+FROM [customersaleswarehouse].[bronze].[cust_az12_erp];
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> Renaming tables: loc_a101_erp: cust_loc_attributes_erp'
+PRINT '>> creating table: silver.cust_loc_attributes_erp';
+IF OBJECT_ID ('silver.cust_loc_attributes_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[silver].[cust_loc_attributes_erp];
+CREATE TABLE [customersaleswarehouse].[silver].[cust_loc_attributes_erp]
+(
+   customer_location_id varchar(50),
+   customer_key varchar(50),
+   customer_country varchar(50),
+   processed_date date
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[cust_loc_attributes_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[cust_loc_attributes_erp];
+PRINT '>> Ingesting Data into: cust_loc_attributes_erp';
+INSERT INTO [customersaleswarehouse].[silver].[cust_loc_attributes_erp]
+SELECT 
+CID as customer_location_id,
+CASE
+    WHEN CID LIKE '%-%' THEN REPLACE(CID, '-', '')
+    ELSE CID
+    END AS customer_key,
+CASE 
+    WHEN cntry IN ('USA', 'US', 'us', 'usa') THEN 'United States'
+    WHEN cntry IN ('DE', 'de') THEN 'Germany'
+    WHEN cntry IS NULL OR cntry = '' THEN 'n/a'
+    ELSE cntry
+    END AS customer_country,
+GETDATE() as processed_date
+FROM [customersaleswarehouse].[bronze].[loc_a101_erp];
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+
+SET @start_time = CURRENT_TIMESTAMP;
+PRINT '>> Renaming tables: px_cat_g1v2_erp: prd_additional_attributes_erp'
+PRINT '>> creating table: silver.prd_additional_attributes_erp';
+IF OBJECT_ID ('silver.prd_additional_attributes_erp', 'U') IS NOT NULL
+DROP TABLE [customersaleswarehouse].[silver].[prd_additional_attributes_erp];
+CREATE TABLE [customersaleswarehouse].[silver].[prd_additional_attributes_erp]
+(
+  product_category_key varchar(50),
+  product_category varchar(50),
+  product_subcategory varchar(50),
+  maintenance varchar(50),
+  processed_date date
+);
+
+PRINT '>> Truncating Table:[customersaleswarehouse].[silver].[prd_additional_attributes_erp]';
+TRUNCATE TABLE [customersaleswarehouse].[silver].[prd_additional_attributes_erp];
+PRINT '>> Ingesting Data into: prd_additional_attributes_erp';
+INSERT INTO [customersaleswarehouse].[silver].[prd_additional_attributes_erp]
+SELECT
+id as product_category_key,
+cat as product_category,
+subcat as product_subcategory,
+maintenance,
+GETDATE() as processed_date
+FROM [customersaleswarehouse].[bronze].[px_cat_g1v2_erp];
+SET @end_time = CURRENT_TIMESTAMP;
+PRINT '>> load duration: ' + cast(datediff(second, @start_time, @end_time) as varchar) + ' seconds';
+PRINT '----------';
+
+SET @batch_end_time = CURRENT_TIMESTAMP;
+PRINT '==================================================================================================================';
+PRINT 'loading silver layer completed';
+PRINT '  - total load duration:  ' + cast(datediff(second, @batch_start_time, @batch_end_time) as varchar) + ' seconds';
+PRINT '===================================================================================================================';
+
+END TRY
+BEGIN CATCH
+PRINT '==========================================================================';
+PRINT 'error occured during loading bronze layer'
+PRINT 'error message' + error_message();
+PRINT 'error message' + CAST(error_number() as varchar);
+PRINT 'error message' + CAST(error_state() as varchar);
+PRINT '==========================================================================';
+END CATCH
+END
+
