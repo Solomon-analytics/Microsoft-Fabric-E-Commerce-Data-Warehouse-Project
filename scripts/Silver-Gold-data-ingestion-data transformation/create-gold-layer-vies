@@ -1,0 +1,196 @@
+/*================================================================================
+Integrating data from multiple systems: olist and glb
+objetives:
+1. add metadata that reveals the sourcesystem
+2. consolidate both tables and assign row number as new primary_key
+3. convert date to string(LEN(8))
+
+
+
+
+
+
+
+/*==========================================================
+Integrating and creating dim_products
+===========================================================*/
+/*-------------------------------------------------------------------
+-- source: olist
+table A: [silver].[products_olist] - row(32951), distinct product_id (32951)
+table B: [silver].[product_category_olist] - row(71)
+columns: product_id(A), product_category_name_english(B)
+
+-- source: glb
+table A: [silver].[prd_info_glb] - row(295), distinct(source_product_key)
+table B: [silver].[prd_additional_attributes_glb], row(37), distinct(product_category_key)
+---------------------------------------------------------------------*/
+
+
+CREATE VIEW gold.dim_products AS
+WITH olist_table AS (
+SELECT 
+p.product_id,
+pa.product_category_name_english as product_category,
+'olist-src' as source_name
+FROM [silver].[products_olist] AS p
+LEFT JOIN [silver].[product_category_olist] AS pa
+ON p.product_category_name = pa.product_category_name),
+
+glb_table AS (
+SELECT
+p.source_product_key as product_id,
+CONCAT(p.product_name, ' ', '-', ' ', pa.product_category) as product_category,
+'glb-src' as source_name
+FROM [silver].[prd_info_glb] p
+LEFT JOIN [Ecommerce dw].[silver].[prd_additional_attributes_glb] pa
+ON pa.product_category_key = p.product_key)
+
+SELECT t.*,
+ROW_NUMBER() OVER (ORDER BY product_id, source_name, product_category) as integration_product_id
+FROM(
+SELECT *
+FROM olist_table
+UNION
+SELECT *
+FROM glb_table)t ;
+
+-- validating view
+SELECT COUNT(*)
+FROM [Ecommerce dw].[gold].[dim_products];
+-- 33246: (glb(295) + olist(32951)
+
+
+SELECT MAX(integration_product_id), MIN(integration_product_id)
+FROM [Ecommerce dw].[gold].[dim_products];
+-- MAX(33246), MIN(1)
+
+
+
+/*==========================================================
+Integrating and creating dim_customers
+===========================================================*/
+/*-------------------------------------------------------
+source: glb
+Table A: [silver].[cust_info_glb] - row(18484), DISTINCT(customer_id)
+Table B: [silver].[cust_loc_attributes_glb] - row(c), DISTINCT(customer_key)
+
+
+-- source: olist
+table A: silver.customers_olist - row(99441), distinct customer_id (32951)
+
+-----------------------------------------------------------*/
+
+CREATE VIEW gold.dim_customers as
+WITH customer_glb as (
+SELECT
+p.customer_id,
+s.customer_country,
+'glb-src' as source_name
+FROM [Ecommerce dw].[silver].[cust_info_glb] AS p
+LEFT JOIN [Ecommerce dw].[silver].[cust_loc_attributes_glb] AS s 
+ON s.customer_key = p.customer_key),
+
+customer_olist as (
+SELECT 
+customer_id,
+customer_country,
+'olist-src' as source_name
+FROM silver.customers_olist)
+
+SELECT
+t.*,
+ROW_NUMBER() OVER (ORDER BY customer_id, customer_country, source_name) as integration_customer_id
+FROM(
+SELECT *
+FROM customer_glb
+UNION
+SELECT *
+FROM customer_olist)t;
+
+
+-- validating gold.dim_customers
+
+SELECT COUNT(*)
+FROM [Ecommerce dw].[gold].[dim_customers];
+-- 117925 count: olist(99441), glb(18484)
+
+SELECT MAX(integration_customer_id), MIN(integration_customer_id)
+FROM [Ecommerce dw].[gold].[dim_customers];
+-- MAX(117925) , MIN(1)
+
+
+
+/*==========================================================
+Integrating and creating fact_sales_order
+===========================================================*/
+
+
+/*----------------------------------------------------------
+- source: glb
+Table: [silver].[sales_details_glb]: row(60398), has sales_product_key & sales_customer_id
+Selected columns: sales_product_key, sales_customer_id, sales_order_date_id, sales_order_date,
+sales_ship_date_id, sales_ship_date, sales_due_date_id, sales_due_date, sales_amount, sales_quantity, sales_price, source_name
+-----------------------------------------------------------*/
+
+SELECT COUNT(*)
+FROM [Ecommerce dw].[silver].[sales_details_glb]
+
+
+/*----------------------------------------------------------
+- source: olist
+Table A : [Ecommerce dw].[silver].[order_items_olist]: row(112650), has sales_product_key & sales_customer_id
+Selected columns: sales_product_key, sales_customer_id, sales_order_date_id, sales_order_date,
+sales_ship_date_id, sales_ship_date, sales_due_date_id, sales_due_date, sales_amount, sales_quantity, sales_price, source_name
+-----------------------------------------------------------*/
+CREATE VIEW gold.fact_sales_order AS
+WITH olist_fact as (
+SELECT
+CAST(ROW_NUMBER() OVER (ORDER BY oi.order_id, o.customer_id, oi.product_id) as varchar(100)) as integrated_order_number,
+dc.integration_customer_id as customer_id,
+dp.integration_product_id as product_id,
+oi.shipping_limit_date as ship_date,
+REPLACE(oi.shipping_limit_date, '-', '') as ship_date_id,
+o.order_purchase_timestamp as order_date,
+REPLACE(o.order_purchase_timestamp, '-', '') as order_date_id,
+o.order_estimated_delivery_date as due_date,
+REPLACE(o.order_estimated_delivery_date, '-', '') AS due_date_id,
+COALESCE(oi.order_quantity, 0) as order_quantity,
+COALESCE(oi.price, 0) as price,
+COALESCE(oi.order_quantity * oi.price, 0) as order_amount,
+'olist-src' as source_name
+FROM [Ecommerce dw].[silver].[order_items_olist] oi
+LEFT JOIN [Ecommerce dw].[silver].[orders_olist] o
+ON o.order_id = oi.order_id
+LEFT JOIN [Ecommerce dw].[gold].[dim_customers] dc
+ON o.customer_id = dc.customer_id
+LEFT JOIN [Ecommerce dw].[gold].[dim_products] dp 
+ON dp.product_id = oi.product_id),
+
+glb_fact as (
+SELECT
+sales_order_number as order_number,
+dc.integration_customer_id as customer_id,
+dp.integration_product_id as product_id,
+sales_ship_date as ship_date,
+sales_ship_date_id as ship_date_id,
+sales_order_date as order_date,
+sales_order_date_id as order_date_id,
+sales_due_date as due_date,
+sales_due_date_id as due_date_id,
+sales_quantity as order_quantity,
+sales_price as price,
+sales_amount as order_amount,
+'glb-src' as source_name
+FROM [Ecommerce dw].[silver].[sales_details_glb] sd
+LEFT JOIN [Ecommerce dw].[gold].[dim_customers] dc
+ON dc.customer_id = sd.sales_customer_id
+LEFT JOIN [Ecommerce dw].[gold].[dim_products] dp 
+ON dp.product_id = sd.sales_product_key)
+
+SELECT *
+FROM olist_fact
+UNION
+SELECT *
+FROM glb_fact;
+
+
