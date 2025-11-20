@@ -1,0 +1,457 @@
+/*====================================================================================
+Data Quality Exploration
+=====================================================================================*/
+
+/*=================================================================;
+   'Exploring glb tables for data quality issues';
+===================================================================*/;
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: sales_details_glb';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[sales_details_glb];
+--- 60398 rows
+
+--- check to see if sls_ord_num uniquely represent each line/row 
+SELECT COUNT(distinct sls_ord_num)
+FROM [bronze].[sales_details_glb];
+--- count 27659 does not unqiuely represent each row
+
+--- considering this table does not contain a primary key that uniquely identify each row, combining both foreign keys and sls_ord_num to check for duplicates
+SELECT
+COUNT(*) AS num_occurence,
+sls_ord_num, sls_cust_id, sls_prd_key
+FROM [bronze].[sales_details_glb]
+GROUP BY sls_ord_num, sls_cust_id, sls_prd_key
+HAVING count(*) > 1;
+--- there is no duplicate in this table
+
+SELECT MAX(sls_order_dt), MIN(sls_order_dt)
+FROM [bronze].[sales_details_glb];
+-- there is a data quality issue in this column. column originally stored LIKE '20130108', having LEN=8. data quality issue, some columns do have LEN < 8 or LEN = 0
+
+SELECT count(*)
+FROM [customersaleswarehouse].[bronze].[sales_details_crm]
+WHERE CAST(sls_order_dt as int) <= 0 OR LEN(sls_order_dt) <> 8;
+-- there are 19 occurence where sls_order date is either less than 8 in length, 0 or less than 0 which makes it an invalid date string
+
+SELECT MAX(sls_ship_dt), MIN(sls_ship_dt)
+FROM [bronze].[sales_details_glb];
+-- this column has no data quality issue
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[sales_details_crm]
+WHERE sls_sales IS NULL;
+--- some sls_price, sls_sales is stored as Null, investigate and handle Null
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[sales_details_crm]
+WHERE sls_price <= 0 OR sls_price IS NULL;
+-- sales column with 13 occurence. price column with 12 occurence
+
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[sales_details_crm]
+WHERE sls_price <> sls_sales;
+-- there are 14 occurence where sls_price and sls_sales does not match
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: prd_info_glb';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[prd_info_glb];
+--- 397 COUNT
+--- table has prd_id and prd_key
+
+SELECT COUNT(DISTINCT prd_id)
+FROM [bronze].[prd_info_glb];
+--- prd_id uniquely represent each row 
+
+
+SELECT COUNT(DISTINCT prd_key)
+FROM [bronze].[prd_info_glb];
+--- prd_key does uniquely represent each row 
+
+SELECT prd_key, COUNT(prd_key) as prd_key_num_occurence
+FROM [bronze].[prd_info_glb]
+GROUP BY prd_key
+HAVING COUNT(prd_key) > 1;
+
+SELECT *
+FROM [bronze].[prd_info_glb]
+WHERE prd_key IN ('BI-MB-BK-M68B-38', 'CO-RF-FR-R38B-44', 'BI-RB-BK-R89B-48');
+-- outcome reveals prd_key does not uniquely represent each row because the same product_key is assigned to an updated product meanwhile, a new product_id is assigned to a product whenever a product is updated
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[prd_info_crm]
+WHERE prd_cost IS NULL;
+--- investigate prd_cost with null values and handle it's null values;
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[prd_info_crm]
+WHERE prd_start_dt > prd_end_dt;
+--- there are 200 occurrences where prd_start_date is greater than prd_end_dt
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: cust_info_glb';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[cust_info_glb];
+--- 18494 row count
+
+SELECT TOP(100) *
+FROM [bronze].[cust_info_glb];
+--- table has cst_id and cst_key
+
+SELECT COUNT(DISTINCT cst_id)
+FROM [bronze].[cust_info_glb];
+--- cst_id does not uniquely represent each row
+
+SELECT COUNT(DISTINCT cst_key)
+FROM [bronze].[cust_info_glb];
+--- does not uniquely represent each row although very close with count of 18488. inestigating why?
+
+SELECT cst_key, COUNT(cst_key) as num_occurence
+FROM [bronze].[cust_info_glb]
+GROUP BY cst_key
+HAVING COUNT(cst_key) > 1;
+-- investigating the 5 occurence data quality issue in this column
+
+SELECT *
+FROM [bronze].[cust_info_glb]
+WHERE cst_key IN ('AW00029483', 'AW00029449', 'AW00029433', 'AW00029466', 'AW00029473');
+-- it appears this issue is related to the data quality issue in the column 'cst_id'
+
+SELECT COUNT(*)
+FROM [bronze].[cust_info_glb]
+WHERE cst_gender IS NULL;
+--- there are 4578 occurences where cst_gender is null
+
+
+SELECT COUNT(*)
+FROM [bronze].[cust_info_glb]
+WHERE cst_mariatal_status IS NULL;
+--- cst_mariatal_status has 7 occurence of null
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: cust_az12_glb';
+PRINT '------------------------------------------------------------------';
+
+
+SELECT COUNT(*)
+FROM [bronze].cust_az12_glb;
+--- has a count 18484
+
+
+SELECT TOP(100) *
+FROM [bronze].cust_az12_glb;
+
+SELECT COUNT(DISTINCT CID)
+FROM [bronze].cust_az12_glb;
+--- CID uniquely represents each row
+
+SELECT COUNT(*)
+FROM [bronze].cust_az12_glb
+WHERE BDATE IS NULL;
+--- there are no null values in this column
+
+SELECT DISTINCT GEN
+FROM [bronze].cust_az12_glb;
+--- there are 4 distinct char value in this column including NUll
+
+SELECT COUNT(*)
+FROM [bronze].cust_az12_glb
+WHERE GEN IS NULL;
+--- 1472 null occurence
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: loc_a101_glb';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(DISTINCT CID)
+FROM [bronze].[loc_a101_glb];
+--- CID uniquely represents each row
+
+SELECT DISTINCT cntry
+FROM [bronze].[loc_a101_glb];
+--- attributes in this column has varying namings
+
+SELECT COUNT(*)
+FROM [bronze].[loc_a101_glb]
+WHERE cntry IS NULL;
+--- 332 occurence of Null in this column
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: px_cat_g1v2_glb';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [customersaleswarehouse].[bronze].[px_cat_g1v2_glb];
+--- has count of 37
+
+
+
+/*=================================================================;
+   'Exploring olist tables for data quality issues';
+===================================================================*/;
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: customers_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[customers_olist];
+-- has 99441 rows
+
+SELECT COUNT(DISTINCT customer_id)
+FROM [bronze].[customers_olist];
+-- customer_id distinct to each rows
+
+SELECT COUNT(*)
+FROM [bronze].[customers_olist]
+WHERE customer_id IS NULL;
+-- NO occurence of Null
+
+SELECT COUNT(DISTINCT customer_unique_id)
+FROM [bronze].[customers_olist];
+-- returns a distinct count (96096)--some values in this column appears not to disitinctly represent each row
+
+SELECT COUNT(*)
+FROM(
+SELECT COUNT(customer_unique_id) as occurence,
+customer_unique_id
+FROM [bronze].[customers_olist]
+GROUP BY customer_unique_id
+HAVING COUNT(customer_unique_id) > 1)T ;
+-- returns a count of 2997
+-- investigating
+
+SELECT
+customer_unique_id,
+COUNT(customer_unique_id) as num_occurence
+FROM [bronze].[customers_olist]
+GROUP BY 
+customer_unique_id
+HAVING COUNT(customer_unique_id) > 1;
+
+SELECT
+*
+FROM [bronze].[customers_olist]
+WHERE customer_unique_id = 'c4fe9fc8b5e1b4f9992db983d0429854';
+-- it appears this column has duplicate issues, in contrast to this, the customer id which is distinct assigns a new value in rows where the value in customer_unique_id are the same
+-- Window function will be used to standardise this issue
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: order_items_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[order_items_olist];
+-- 112650 count
+
+SELECT COUNT(DISTINCT order_id)
+FROM [bronze].[order_items_olist];
+-- distinct 98666, order_id not unique --> investigate
+
+SELECT COUNT(*)
+FROM(
+SELECT order_id, COUNT(order_id) as num_occurence
+FROM [bronze].[order_items_olist]
+GROUP BY order_id
+HAVING COUNT(order_id) > 1)T ;
+-- 9803 occurence where order_id not distinct
+
+
+SELECT *
+FROM [bronze].[order_items_olist]
+WHERE order_id = 'eabd655acd4b2c89bd505ae21dbeb102';
+-- multiple occurence of an the same order_id is a result of multiple 'order_item_id' and 'product_id' 
+
+SELECT COUNT(DISTINCT product_id)
+FROM [bronze].[order_items_olist];
+-- 32951 distinct occurence. 
+
+SELECT product_id, COUNT(product_id) as num_occurence
+FROM [bronze].[order_items_olist]
+GROUP BY product_id
+HAVING COUNT(product_id) > 1;
+
+SELECT *
+FROM [bronze].[order_items_olist]
+WHERE product_id = '3a806ac1ab98107febb4ffcf38bc1fac';
+-- this is a case of product_id related to varying order_id or purchased at various date recorded in the data
+
+SELECT *
+FROM [bronze].[order_items_olist]
+WHERE product_id IS NULL;
+-- there are no null records in any of the id's
+
+SELECT 
+MAX(C) as max_shipping_date,
+MIN(shipping_limit_date) as min_shipping_date
+FROM [bronze].[order_items_olist]
+-- the date values in this column are valid
+
+SELECT COUNT(*)
+FROM [bronze].[order_items_olist]
+WHERE shipping_limit_date IS NULL;
+-- there are no null value in this column
+
+SELECT COUNT(*)
+FROM [bronze].[order_items_olist]
+WHERE price < 1;
+-- there are no null value in this column, however, there are occurenct where value is less than 0
+
+SELECT *
+FROM [bronze].[order_items_olist]
+WHERE price < 1;
+-- no issue
+
+SELECT *
+FROM [bronze].[order_items_olist]
+WHERE freight_value < 1;
+-- there are 523 occurence where value in this column is less than 1
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: order_payments_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[order_payments_olist];
+-- 103886 row count
+
+SELECT COUNT(DISTINCT order_id)
+FROM [bronze].[order_payments_olist];
+-- not distinct, disinct count (99440)
+
+SELECT order_id, COUNT(order_id) as num_occurence
+FROM [bronze].[order_payments_olist]
+GROUP BY order_id
+HAVING COUNT(order_id) > 1;
+
+SELECT *
+FROM [bronze].[order_payments_olist]
+WHERE order_id = 'e4cbb88fcf9a02837b22b1f6f812a9ed';
+-- the multiple order_id is related to other columns in the dataset
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: orders_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist];
+-- 99441 rows
+
+SELECT COUNT(DISTINCT order_id)
+FROM [bronze].[orders_olist];
+-- id values in this column uniquely represent each row
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE order_id IS NULL;
+-- No null value recorded
+
+SELECT COUNT(DISTINCT customer_id)
+FROM [bronze].[orders_olist]
+-- id value in this column uniquely represent each row
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE customer_id IS NULL;
+-- NO null values
+
+SELECT COUNT(*) as num_rows, order_status
+FROM [bronze].[orders_olist]
+GROUP BY order_status;
+-- canceled status has 625 occurence
+
+SELECT MAX(order_purchase_timestamp), MIN(order_purchase_timestamp)
+FROM [bronze].[orders_olist];
+-- column, 'order_purchase_timestamp' contains valid date
+
+SELECT *
+FROM [bronze].[orders_olist]
+WHERE order_purchase_timestamp IS NULL;
+-- column, 'order_purchase_timestamp' contains valid date
+
+
+SELECT MAX(order_approved_at), MIN(order_approved_at)
+FROM [bronze].[orders_olist]
+-- no invalid date
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE order_approved_at IS NULL;
+-- order_approved_date has 160 occurence of null
+
+SELECT MAX(order_delivered_carrier_date), MIN(order_delivered_carrier_date)
+FROM [bronze].[orders_olist]
+-- no invalid date
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE order_delivered_carrier_date IS NULL;
+-- 1783 occurence of null in the column, order_delivered_carrier_date
+
+SELECT MAX(order_delivered_customer_date), MIN(order_delivered_customer_date)
+FROM [bronze].[orders_olist]
+-- column does not contain invalid date
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE order_delivered_customer_date IS NULL;
+-- 2965 occurence of null in the column order_delivered_customer_date
+
+SELECT MAX(order_estimated_delivery_date), MIN(order_estimated_delivery_date)
+FROM [bronze].[orders_olist]
+-- does not contain invalid date
+
+SELECT COUNT(*)
+FROM [bronze].[orders_olist]
+WHERE order_estimated_delivery_date IS NULL;
+-- No null occurence
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: product_category_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[product_category_olist];
+-- count(71)
+
+
+PRINT '------------------------------------------------------------------';
+PRINT 'Exploring: products_olist';
+PRINT '------------------------------------------------------------------';
+
+SELECT COUNT(*)
+FROM [bronze].[products_olist];
+-- 32951 rows
+
+SELECT COUNT(DISTINCT product_id)
+FROM [bronze].[products_olist];
+-- values in column 'product_id' uniquely represents each row
+
+SELECT DISTINCT product_category_name
+FROM [bronze].[products_olist];
+
+SELECT COUNT(*)
+FROM [bronze].[products_olist]
+WHERE product_id IS NULL;
+
+SELECT COUNT(product_id) as product_id_count, product_category_name
+FROM [bronze].[products_olist]
+GROUP BY product_category_name
+ORDER BY COUNT(product_id) DESC;
+
