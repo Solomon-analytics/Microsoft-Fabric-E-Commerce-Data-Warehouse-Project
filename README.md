@@ -1,4 +1,4 @@
-** Microsoft Fabric: E-Commerce Data Warehouse Project**
+**Microsoft Fabric: E-Commerce Data Warehouse Project**
 ---
 **Project Overview**
 
