@@ -11,8 +11,8 @@ The solution includes data ingestion, tranformation, modelling, pipeline orchest
 ---
 **Business Problem:**
 
-E-commerce companies often collect data data from multiple ystems. However, these systems usually store information in different structure and formats, leading to innconsistent product details, duplicated customers, missing values, and incompatible date and currency formats.
-Because of these inconsistencies, it becoes difficult to generate accurate sales reports, understand customer behaviour, or build relaible dashboard for decision-making.
+E-commerce companies often collect data data from multiple systems. However, these systems usually store information in different structure and formats, leading to inconsistent product details, duplicated customers, missing values, and incompatible date and currency formats.
+Because of these inconsistencies, it is challenging to generate accurate reports, understand customer behaviour, or build reliable dashboard for decision-making.
 
 This project addresses a typcial real world challenge: bringing together data from multiple e-commerce sources, resolving quality issues, standardising the structure, and preparing a single trusted dataset for analytics and business intelligence.
 
@@ -20,9 +20,9 @@ This project addresses a typcial real world challenge: bringing together data fr
 
 **Data Source:**
 
- The dataset was sourced from a public open-data repository. Dataset from the olist source is an official e-commerce dataset from a Brazillian online marketplace, while dataset from the the global source was also sourced from Kaggle and contains a broader collection of customer purchase recrods from multiple countries.
+ The dataset was sourced from a public open-data repository. Dataset from the olist source is an official e-commerce dataset from a Brazillian online marketplace, while dataset from the the global source was also sourced from Kaggle and contains a collection of customer purchase records from multiple countries.
 
- For the purpose of this project, the dataset from olist sources is been named as 'olist' while the dataset from global source is named as 'glb'.
+ For the purpose of this project, the dataset from olist source is been named as 'olist' while the dataset from global source is named as 'glb'.
 
  ---
 
