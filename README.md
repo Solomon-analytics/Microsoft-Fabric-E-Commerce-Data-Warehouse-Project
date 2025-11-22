@@ -115,18 +115,80 @@ A stored procedure named silver.load_silver was created to perform all required 
 ---
 
 **Step 4: Gold Layer - Business-Focused Views**
-  - **View Created:**
-    - gold.cim_customers - consolidated customer attributes
-    - gold.dim_products - consolidated product attributes
-    - gold.fact_sales_order -  consolidated sales fact table
-  - **Tasks:**
-    - Merge data from olist an glb systems
-    - Generate surrogate keys using (ROW_NUMBER())
-    - Add source system metadata (cource_name)
-    - Convert dates to a standard string format for data modelling relationship
-  - **Outcome:** Business-friendly semantic layer suitable for reporting and Business Intelligence.
- 
+
+The gold layer represents the final and most business-oriented stage of the warehouse.
+
+In this layer, consolidated dimension and fact view were created to support semantic modelling and Power BI reporting.
+
+The aim was to deliver a clean, integrated, and business-friendly dataset suitable for analytics
+
+
+**View Created:**
+
+    
+         - gold.dim_customers - consolidated customer attributes
+         - gold.dim_products - consolidated product attributes
+         - gold.fact_sales_order -  consolidated sales fact table
+
+
+**Tasks:**
+
+        - Silver layer dataset exploration for data integration purposes Please see the folder in this documentation(explore-silver-dataset-for-data-integration
+          /data-integration-exploration-silver-layer)
+        - Merge data from olist an glb systems
+        - retrieve additional attributes from each of the additional dimension tables
+        - Generate surrogate keys using (ROW_NUMBER()) in each of the dimension tables. These keys serve as: "integrated_customer_id" and "integrated_product_id"
+        - Add source system metadata (source_name = "src_glb" or "src_olist")
+        - Convert dates to a standard string format for data modelling relationship
+        - Fact table key replacement: established appropriate join between consolidated fact table and each of the dimension table, dim_customer and dim_product using the "customer_id" and "product_id", then replaced these keys with the generated                                  "integrated_customer_id" and "integrated_product_id"
+        - For data integration activity, Please see the folder in this documentation(scripts/Silver-Gold-data-ingestion-data transformation/create-gold-layer-views)
+**Outcome:** 
+
+The gold layer now provides a high-quality, business-friendly semantic foundation that supports:
+
+        - Power BI reporting
+        - Data Modelling
+        - Consistent business logic across the organisation
+This layer represents the final integrated view of the data, optimised for analytics and decision-making.
+
+  |  semantic model                                   |                    
+  |:-------------------------------------------------:|
+  |  ![](gold_layer_semantic_model.png)               |  
+  
 ---
+
+**Additional Steps**
+---
+
+**Step 5: Dataflow Gen2 - Presentation Layer Enhancement**
+
+Dataflow Gen2 was used to enhance and extend the business-ready gold views by introducing additional date-based attributes and analytical features. This step produces a single presentation table that is optimised for reporting and acts as the primary dataset for the Power BI semantic model.
+
+**Source views used:**
+
+    
+         - gold.dim_customers
+         - gold.dim_products
+         - gold.fact_sales_order 
+
+These views serve as the foundation for feature engineering and presentation ready modelling.
+
+**Tasks:**
+
+Within the dataflow, several custom columns were created to support richer time-series analysis and executive reporting.
+
+        - Order date attributes (order_month, order_year, order_month_year)
+        - Ship date attributes (ship_month, ship_year, ship_month_year)
+        - Due date attributes (due_month, due_year, due_month_year)
+        - shipping duration metrics: calculated as number of days between order date and ship date
+        - Order to ship category: a categorical field used to group orders into defined fulfilment-days bucket
+ **Outcome:** 
+
+The result of the Dataflow gen2 transformation populates a presentation table in the gold layer.
+
+  Dataflow Gen2 Activity                     |       Populating gold.presentation_table            
+  :-----------------------------------------:|:------------------------------------------:|
+  ![](dataflow_gen2_activity.png)            |   ![](presentation_table_gold_layer.png)
 
 
 
