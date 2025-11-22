@@ -1,6 +1,6 @@
 **Microsoft Fabric: E-Commerce Data Warehouse Project**
 ---
-**Project Overview**
+**Project Overview:**
 
 This  project focuses on designing and implementing an end-to-end data warehousing solution using Microsoft Fabric for a global e-commerce environment. Data was sourced from two separate e-commerce systems, olist and glb, each containing customer information, product catalogues, order details, product and customer attributes.
 
