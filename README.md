@@ -36,9 +36,9 @@ This project addresses a typcial real world challenge: bringing together data fr
  - Semantic Model
  - Power BI report
 
-![](medallion_architecture_diagram.svg)
+![](e-commerce architecture diagram.svg)
 
-   ---
+
 
 
 
