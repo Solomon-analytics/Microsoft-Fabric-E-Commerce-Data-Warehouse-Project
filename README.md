@@ -109,11 +109,12 @@ A stored procedure named silver.load_silver was created to perform all required 
 
   |  ingest from bronze to silver                     |                    
   |:-------------------------------------------------:|
-  |  ![](ingest_stg_olist_&_stg_glb_to_bronze.png)    |  
+  |  ![](pl_ingest_from_bronze_to_silver.png)         |  
+
 
 ---
 
-- **Step 4: Gold Layer - Business-Focused Views**
+**Step 4: Gold Layer - Business-Focused Views**
   - **View Created:**
     - gold.cim_customers - consolidated customer attributes
     - gold.dim_products - consolidated product attributes
