@@ -36,50 +36,9 @@ This project addresses a typcial real world challenge: bringing together data fr
  - Semantic Model
  - Power BI report
 
+---
+
 ![](architecture_diagram.svg)
-
-
-
-
-
-
----
-
-**Source Systems:**
-
-- Olist systems: E-commerce platform data
-- Key Tables:
-   - customers
-   - orders
-   - order items
-   - payments
-   - products
-   - product caetegories
-
-- Glb Systems
-- Ket tables:
-    - Customers
-    - products
-    - sales details
-    - customer additional attributes
-    - product additional attributes
-
----
-
-
-**Business Problems:**
-
-- **Fragmented Data**
-   - customer, product, and sales data exist in multiple systems with different formats.
-- **Data Quality Issues**
-   - inconsistent naming conventions
-   - Missing or null values in key fields
-   - Duplicates records
-- **Need for anakytical Insights**
-    - Business user require consolidated and clean dimensions/fact tables for reporting.
-- **Scalability and Maintainability**
-    - Solution must allow incremental ingestion of new files without breaking the ETL pipeline
- 
 
 
 ---
@@ -88,11 +47,8 @@ This project addresses a typcial real world challenge: bringing together data fr
 **Solution Approach**
 
 - **Step 1: Raw Data Ingestion**
-  - Data copied from lakehouse/raw/olist and lakehouse/raw/glb into the staging schemas stg_olist and stg_glb.
-  - Fabric data orchestrate:
-    - Daily ingestion
-    - Only new files are picked up
-    - csvs are landed in staging
+  - Data copied from lakehouse/raw/olist and lakehouse/raw/glb into the staging schemas stg_olist and stg_glb using each of the pipeline activities: Metadata ---> ForEach ---> Copy
+  - csvs are landed in staging layer in the warehouse
 ---
 
 - **Step 2: consolidation**
@@ -131,71 +87,6 @@ This project addresses a typcial real world challenge: bringing together data fr
  
 ---
 
-
-
-**ETL Pipeline Overview**
-
-**Pipeline 1: Raw Ingestion**
-
-- Sources: Lakehouse/raw/olist, Lakehouse/raw/glb
-- Destination: stg_olist, stg_glb
-- Schedule: Daily/Weekly
-- Features: incremental file detection
-
-**Pipeline 2: Staging --> Bronze**
- - calls bronze.load_bronze stored procedure
- - ingest stg data to bronze tables
-
-**Pipeline 3: Bronze --> Silver**
- - Calles silver.load_silver
- - Cleans and deduplicates data
-
-**Pipeline 2: Silver --> Gold**
- - No Stored Procedure needed; tables in the gold layer are stored as views
- - Automatically refreshed based on silver tables.
-
-
----
-
-
-**Data Quality Checks:**
-
-- Deduplication using ROW_NUMBER() OVER (PARTITION BY ORDER BY)
-- Null value handling for key attributes
-- Standardisation of gender, marital status, country, and category
-- Dericed metadata columns, processed_date and soure_name
-
----
-
-
-**Business Benefits**
-
-- **Unified Data Model**
-  - Combines Olist and Glb sources
-  - - Single source of truth for reporting
-- **Improced Data Quality:**
-  - Deduplication
-  - Standardisation
-  - Null handling
-- **Scalable and Repeatable Pipleines
-  - Daily ingestion
-  - Handles incremental files
-  - Orchestration though fabric pipelines
-- **Ready for Analytics**
-  - Gold views are structured for Business Intelligence tools like Power BI or Tableau
- 
----
-
-
-**Project Highlights**
-
- - **Skills Demonstrated:**
-   - Data ingestion from multiple sources
-   - ETL orchestration in Fabric Pipelines
-   - Stored Procedure for Bronze and Silver Layers
-   - Data standardisation and quality checks
-   - Medallipn architecture implementation
-   - Dimenstional modelling for analytics
 
 
 
