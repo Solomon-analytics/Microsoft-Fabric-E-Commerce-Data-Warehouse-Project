@@ -43,17 +43,43 @@ This project addresses a typcial real world challenge: bringing together data fr
 
 ---
 
-
 **Solution Approach**
 
-- **Step 1: Raw Data Ingestion**
+---
+
+**Step 1: Raw Data Ingestion**
+
+
+The raw ingestion steps copies raw csv data from the lakehouse to the warehouse so it can be standardisied, validated, and processed thorugh the medallion layers.
+
   - Data copied from lakehouse/raw/olist and lakehouse/raw/glb into the staging schemas stg_olist and stg_glb using each of the pipeline activities: Metadata ---> ForEach ---> Copy
   - A parameter was created for each ingestion
-  - csvs are landed in staging layer in the warehouse
+  - csvs are landed in staging layer as a table in the warehouse
  
-------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------
-![](raw_glb_to_stg_glb_ingestion.png)                                               |
-                                                                                    |
+  ingest from raw_glb to stg_glb             |           ingest from raw_glb to stg_glb            
+  :-----------------------------------------:|:------------------------------------------:|
+  ![](raw_glb_to_stg_glb_ingestion.png)      |   ![](raw_olist_to_stg_olist_ingestion.png)
+
+ 
+---
+
+**Step 2: Data Ingestion from staging layer to bronze layer**
+
+
+The second step processes data from staging schemas (stg_olist and stg_raw) and loads each of the csv files into specified tables in the bronze layer.
+
+A dedicated stored procedure, bronze.load_bronze, was developed to orchestrate the transformation and loading logic. This procedure was executed within a faric pipeline to ensure repeatability and automation.
+
+**Tasks:**
+
+      - For each csv dataset, a bronze table was created if it does not already exists using SQL
+      - Truncate tables and insert latest staged data
+      - Transformation didn't occur in this layer, data was ingested as it was from the source.
+      - Stored Procedure: bronze.load_bronze was created within the warehouse environment
+      - Pipeline: stored procedure activity was used to ingest data from staging and populate all tables created in the bronze layer
+
+
+
 
 ---
 
