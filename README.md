@@ -40,6 +40,11 @@ This project addresses a typcial real world challenge: bringing together data fr
 
 
 
+![](medallion_architecture_diagram.svg)
+
+
+![](e-commerce architecture diagram.svg)
+
 
 
 
