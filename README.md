@@ -48,7 +48,13 @@ This project addresses a typcial real world challenge: bringing together data fr
 
 - **Step 1: Raw Data Ingestion**
   - Data copied from lakehouse/raw/olist and lakehouse/raw/glb into the staging schemas stg_olist and stg_glb using each of the pipeline activities: Metadata ---> ForEach ---> Copy
+  - A parameter was created for each ingestion
   - csvs are landed in staging layer in the warehouse
+ 
+------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------
+![](raw_glb_to_stg_glb_ingestion.png)                                               |
+                                                                                    |
+
 ---
 
 - **Step 2: consolidation**
