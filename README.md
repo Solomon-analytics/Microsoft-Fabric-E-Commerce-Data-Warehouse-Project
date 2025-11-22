@@ -18,7 +18,8 @@ This project addresses a typcial real world challenge: bringing together data fr
 
 ---
 
-**Data Source**
+**Data Source:**
+
  The dataset was sourced from a public open-data repository. Dataset from the olist source is an official e-commerce dataset from a Brazillian online marketplace, while dataset from the the global source was also sourced from Kaggle and contains a broader collection of customer purchase recrods from multiple countries.
 
  For the purpose of this project, the dataset from olist sources is been named as 'olist' while the dataset from global source is named as 'glb'.
