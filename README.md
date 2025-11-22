@@ -2,7 +2,44 @@
 ---
 **Project Overview**
 
-This project demonstrates the design and implementation of a medallion architecture data warehouse for multiple e-commerce platform. The goal is to integrate from multiple systems, clean and transform it into a structured format suitable for business intelligence and analytics purpose.
+This  project focuses on designing and implementing an end-to-end data warehousing solution using Microsoft Fabric for a global e-commerce environment. Data was sourced from two separate e-commerce systems, olist and glb, each containing customer information, product catalogues, order details, product and customer attributes.
+
+The objective was to integrate these datasets with varying naming conventions and data quality issues into a unified analytics-ready architecture following the medallion (Bronze-silver-gold) framework, enabling clean, consistent and high quality data for business intelligence and advanced analytics.
+
+The solution includes data ingestion, tranformation, modelling, pipeline orchestration, and dashboarding, demonstrating a full modern data platform workflow within Mircosfot fabric.
+
+---
+**Business Problem:**
+
+E-commerce companies often collect data data from multiple ystems. However, these systems usually store information in different structure and formats, leading to innconsistent product details, duplicated customers, missing values, and incompatible date and currency formats.
+Because of these inconsistencies, it becoes difficult to generate accurate sales reports, understand customer behaviour, or build relaible dashboard for decision-making.
+
+This project addresses a typcial real world challenge: bringing together data from multiple e-commerce sources, resolving quality issues, standardising the structure, and preparing a single trusted dataset for analytics and business intelligence.
+
+---
+
+**Data Source**
+ The dataset was sourced from a public open-data repository. Dataset from the olist source is an official e-commerce dataset from a Brazillian online marketplace, while dataset from the the global source was also sourced from Kaggle and contains a broader collection of customer purchase recrods from multiple countries.
+
+ For the purpose of this project, the dataset from olist sources is been named as 'olist' while the dataset from global source is named as 'glb'.
+
+ ---
+
+ **Architecture Summary**
+
+ - Lakehouse
+ - Data Warehouse
+ - Data ingestion and transformation using SQL
+ - Pipelines
+ - Dataflow Gen2
+ - Semantic Model
+ - Power BI report
+
+
+
+
+
+
 
 ---
 
