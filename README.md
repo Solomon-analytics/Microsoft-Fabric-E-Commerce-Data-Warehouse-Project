@@ -77,31 +77,39 @@ A dedicated stored procedure, bronze.load_bronze, was developed to orchestrate t
       - Transformation didn't occur in this layer, data was ingested as it was from the source.
       - Stored Procedure: bronze.load_bronze was created within the warehouse environment
       - Pipeline: stored procedure activity was used to ingest data from staging and populate all tables created in the bronze layer
+      - Please see the folder in this documentation(script ---> "data ingestion from stg to bronze layer")
 
-
+  |  ingest from stg_glb and stg_olist to bronze      |                    
+  |:-------------------------------------------------:|
+  |  ![](ingest_stg_olist_&_stg_glb_to_bronze.png)    |  
 
 
 ---
 
-- **Step 2: consolidation**
-  - **Stored Procedure": bronze.load_bronze
-    - **Tasks:**
-      - Create tables for each source system
-      - Truncate tables and insert latest staged data
-      - clean basic data issues(trim strings, handle nulls, convert date stored as strings to date)
-  - **Outcome** bronze tables with curated source data.
+**Step 3: Silver Layer Transformation**
 
- ---
+In this stage, data from the bronze layer is refined into high quality analytical tables within the silver layer.
+
+The silver layer applies business logic, resolves data quality issues, and prepares dataset for dimensional modelling in the gold layer.
+
+A stored procedure named silver.load_silver was created to perform all required transformations. This procedure is executed by a farbic pipeline to ensure consistent, automated data processing.
 
 
- - **Step 3: Silver Layer Transformation**
-   - **Stored Procedure:** silver.load_silver
-    - **Tasks:**
-      - Apply business rules and data quality checks
+**Tasks:**
+
+      - Explore each of the dataset in the bronze layer for data quality issues (Please see the folder in this documentation("test-data-quality-checks)
+        " ---> "data-quality-checks-bronze-layer")
+      - Data cleaning
       - Deduplicate records
       - Standardise name, date and categories
       - Derive additional attributes (e.g., processed_date)
-   - **Outcome:** Clean and standardised tables ready for analytics.
+      - For data cleaning/transformation activity, Please see the folder in this documentation(scripts/Bronze ingestion script
+        /data cleaning and standardisation)
+**Outcome:** Clean dataset from bronze schema were ingested into each of the tables created in the silver layer using a pipeline(stored procedure activity)
+
+  |  ingest from bronze to silver                     |                    
+  |:-------------------------------------------------:|
+  |  ![](ingest_stg_olist_&_stg_glb_to_bronze.png)    |  
 
 ---
 
