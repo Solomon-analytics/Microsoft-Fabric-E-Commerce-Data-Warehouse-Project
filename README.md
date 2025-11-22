@@ -2,7 +2,7 @@
 ---
 **Project Overview:**
 
-This  project focuses on designing and implementing an end-to-end data warehousing solution using Microsoft Fabric for a global e-commerce environment. Data was sourced from two separate e-commerce systems, olist and glb, each containing customer information, product catalogues, order details, product and customer attributes.
+This  project focuses on designing and implementing an end-to-end data warehousing solution using Microsoft Fabric for a global e-commerce environment. Data was sourced from two separate e-commerce systems, olist and glb, each containing customer information, product catalogues, and order details.
 
 The objective was to integrate these datasets with varying naming conventions and data quality issues into a unified analytics-ready architecture following the medallion (Bronze-silver-gold) framework, enabling clean, consistent and high quality data for business intelligence and advanced analytics.
 
