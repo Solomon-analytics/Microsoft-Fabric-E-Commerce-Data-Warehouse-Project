@@ -226,7 +226,7 @@ It provides executive with:
 
   |  Executive Sales Report                           |                    
   |:-------------------------------------------------:|
-  |  ![](pbi_executive_report.png)                    |  
+  |  ![](Executive_sales_report.png)                    |  
 
 ---
 
